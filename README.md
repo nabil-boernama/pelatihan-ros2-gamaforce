@@ -292,7 +292,7 @@ Ganti dengan ini (kita daftarkan semua node sekaligus supaya tidak perlu mengedi
         'console_scripts': [
             'circle = turtle_challenge.circle:main',
             'pose_printer = turtle_challenge.pose_printer:main',
-            'wall_stopper = turtle_challenge.wall_stopper:main',
+            'finish_line = turtle_challenge.finish_line:main',
             'my_challenge = turtle_challenge.my_challenge:main',
         ],
     },
@@ -416,34 +416,36 @@ Fakta yang akan sering kamu pakai di challenge:
 
 ### 3.5 Node 3: Baca, Hitung, Kirim
 
-Node ini membaca posisi, memutuskan, lalu mengirim perintah. Ini **pola dasar semua challenge**.
+Node ini membaca posisi, memutuskan, lalu mengirim perintah. Ini **pola dasar semua challenge**. Kura-kura maju cepat, melambat setelah `x = 6`, lalu berhenti di "garis finis" `x = 8`.
 
 ```bash
-cat > ~/turtle_ws/src/turtle_challenge/turtle_challenge/wall_stopper.py <<'EOF'
+cat > ~/turtle_ws/src/turtle_challenge/turtle_challenge/finish_line.py <<'EOF'
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
 
 
-class WallStopper(Node):
+class FinishLine(Node):
     def __init__(self):
-        super().__init__('wall_stopper')
+        super().__init__('finish_line')
         self.pub = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
         self.sub = self.create_subscription(Pose, '/turtle1/pose', self.on_pose, 10)
 
     def on_pose(self, pose):
         cmd = Twist()
-        if pose.x < 9.0:
-            cmd.linear.x = 1.5
+        if pose.x < 6.0:
+            cmd.linear.x = 2.0      # zona cepat
+        elif pose.x < 8.0:
+            cmd.linear.x = 0.8      # zona lambat
         else:
-            cmd.linear.x = 0.0      # berhenti sebelum menabrak dinding
+            cmd.linear.x = 0.0      # garis finis: berhenti
         self.pub.publish(cmd)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = WallStopper()
+    node = FinishLine()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -465,10 +467,10 @@ ros2 service call /reset std_srvs/srv/Empty
 ```
 
 ```bash
-ros2 run turtle_challenge wall_stopper
+ros2 run turtle_challenge finish_line
 ```
 
-Kura-kura maju dari tengah lalu berhenti di sekitar `x = 9`.
+Perhatikan perubahan kecepatannya saat melewati `x = 6` dan berhentinya di `x = 8`.
 
 Polanya:
 
@@ -480,25 +482,29 @@ Polanya:
 
 ## 4. Challenge
 
-### 4.1 Aturan Main
+### 4.1 Misi
 
-- Bekerja **berpasangan**.
-- **Wajib sampai Level 2.** Level 3 dan 4 untuk yang cepat. Bonus menambah poin.
+Drone tidak boleh keluar dari batas area terbangnya (geofence). Di sini, "drone"-mu adalah kura-kura dan batas areanya adalah **dinding** jendela turtlesim.
+
+Tugasmu: buat node yang menggerakkan kura-kura **sendiri** tanpa pernah menabrak dinding. Kalau terdeteksi sudah dekat dinding, kura-kura harus **berbelok**. Kamu yang menentukan seberapa dekat dianggap "dekat", dan bagaimana cara berbeloknya.
+
+### 4.2 Aturan Main
+
+- Bekerja **sendiri-sendiri**.
 - Boleh membuka dokumentasi dan internet. Mentor membantu lewat petunjuk bertahap, bukan jawaban langsung.
 - Jangan pake AI, kita mau liat cara problem solvingmu.
-- Verifikasi: panggil mentor, lalu jalankan node-mu di depannya dari kondisi awal (`/reset`).
+- Node-mu harus berjalan **sendiri**. Jangan jalankan teleop bersamaan, karena dua node yang mengirim ke `cmd_vel` membuat gerakan kacau.
+- Verifikasi: panggil mentor, lalu jalankan node-mu di depannya dari kondisi awal (`/reset`). Mentor mengamati kura-kura selama 60 detik.
 
-### 4.2 Daftar Challenge
+### 4.3 Tugas dan Kriteria Lulus
 
-| Level | Tugas | Kriteria lulus |
-|---|---|---|
-| 1 | **Persegi.** Gambar persegi lalu berhenti | Bentuk mendekati persegi, kembali dekat titik awal |
-| 2 | **Ke titik.** Pergi ke titik (8, 3) lalu berhenti | Berhenti dalam jarak sekitar 0,2 dari titik, tanpa menabrak dinding |
-| 3 | **Patroli.** Kunjungi 4 titik berurutan lalu berhenti | Semua titik dilewati sesuai urutan |
-| 4 | **Lawnmower.** Sapu area dengan jalur bolak-balik | Jejak menutupi sebagian besar area tanpa celah besar |
-| Bonus | **Pengejar.** `turtle2` mengejar `turtle1` yang digerakkan teleop | `turtle2` terus mendekati `turtle1` |
+**Tugas:** kura-kura maju terus dari titik awal (setelah `/reset`) dan berbelok setiap kali mendekati dinding.
 
-### 4.3 Kerangka Awal
+**Kriteria lulus:** berjalan **60 detik tanpa menabrak dinding**.
+
+Yang dimaksud menabrak dinding: kura-kura sampai ke tepi jendela (posisi `x` atau `y` mendekati 0 atau 11).
+
+### 4.4 Kerangka Awal
 
 Buat file kerangka berikut. Kamu hanya perlu mengisi bagian `TODO` di `on_timer`.
 
@@ -553,17 +559,16 @@ Jalankan:
 ros2 run turtle_challenge my_challenge
 ```
 
-### 4.4 Kotak Alat
+### 4.5 Kotak Alat
 
-- Area turtlesim: `x` dan `y` sekitar 0 sampai 11. Titik awal sekitar (5, 5), `theta = 0` (menghadap kanan).
-- Putar 90 derajat sama dengan sekitar **1,57 radian**.
-- Waktu putar sama dengan sudut dibagi kecepatan angular. Jarak maju sama dengan kecepatan linear dikali waktu.
-- Jarak ke tujuan: `math.hypot(dx, dy)`, dengan `dx = goal_x - x` dan `dy = goal_y - y`.
-- Arah ke tujuan: `math.atan2(dy, dx)`.
-- Selisih sudut harus dinormalisasi ke rentang minus pi sampai pi, kalau tidak kura-kura bisa memilih putaran yang terjauh:
+- Area turtlesim: `x` dan `y` sekitar 0 sampai 11 (tepinya sekitar 11,09). Titik awal sekitar (5, 5), `theta = 0` (menghadap kanan).
+- Arah hadap (`theta`, dalam radian): `0` ke kanan, `1.57` ke atas, `3.14` (atau `-3.14`) ke kiri, `-1.57` ke bawah.
+- `angular.z` **positif** berputar ke kiri (berlawanan arah jarum jam), **negatif** ke kanan.
+- `math.cos(theta)` dan `math.sin(theta)` menunjukkan ke arah mana kura-kura menghadap pada sumbu `x` dan `y`.
+- Lihat posisi kura-kura langsung saat ia dekat dinding:
 
-```python
-e = math.atan2(math.sin(e), math.cos(e))
+```bash
+ros2 topic echo /turtle1/pose
 ```
 
 Reset kura-kura ke titik awal (lakukan sebelum **setiap** percobaan):
@@ -572,26 +577,33 @@ Reset kura-kura ke titik awal (lakukan sebelum **setiap** percobaan):
 ros2 service call /reset std_srvs/srv/Empty
 ```
 
+Taruh kura-kura di posisi dan arah tertentu (untuk menguji dari kondisi lain, supaya kodemu tidak hanya jalan dari titik awal). Contoh: dekat dinding kanan, menghadap dinding:
+
+```bash
+ros2 service call /turtle1/teleport_absolute turtlesim/srv/TeleportAbsolute '{x: 10.0, y: 5.0, theta: 0.0}'
+```
+
+Contoh lain: dekat pojok kanan atas, menghadap serong ke pojok:
+
+```bash
+ros2 service call /turtle1/teleport_absolute turtlesim/srv/TeleportAbsolute '{x: 10.3, y: 10.3, theta: 0.78}'
+```
+
 Hapus jejak garis:
 
 ```bash
 ros2 service call /clear std_srvs/srv/Empty
 ```
 
-Munculkan `turtle2` (untuk Bonus):
+### 4.6 Strategi
 
-```bash
-ros2 service call /spawn turtlesim/srv/Spawn '{x: 2.0, y: 2.0, theta: 0.0, name: turtle2}'
-```
-
-### 4.5 Strategi
-
-- **Mulai dari yang paling kecil.** Pastikan node bisa membuat kura-kura bergerak sedikit, baru tambah logika.
-- **Pecah masalah.** Level 2 sebenarnya dua masalah kecil: menghadap tujuan, lalu maju ke tujuan.
-- **Cetak nilai.** Kalau perilaku aneh, tampilkan jarak dan selisih sudut dengan `self.get_logger().info(..., throttle_duration_sec=0.5)`.
-- **Uji dari kondisi yang sama.** Panggil `/reset` sebelum tiap percobaan.
-- **Gunakan kembali.** Level 3 adalah Level 2 ditambah daftar tujuan. Level 4 adalah Level 3 dengan daftar tujuan yang dibuat lewat loop. Simpan versi yang sudah jalan sebelum mengembangkannya.
+- **Mulai dari yang paling kecil.** Pastikan node bisa membuat kura-kura bergerak maju, baru tambah logika.
+- **Selesaikan satu dinding dulu.** Dinding kanan saja, baru tambah tiga dinding lainnya. Polanya mirip.
+- **Cetak nilai.** Kalau perilaku aneh, tampilkan posisi, `theta`, dan keputusanmu dengan `self.get_logger().info(..., throttle_duration_sec=0.5)`.
+- **Uji dari kondisi yang sama dulu**, lalu dari kondisi lain. Panggil `/reset` sebelum tiap percobaan.
+- **Simpan versi yang sudah jalan** sebelum mencoba mengubahnya.
 - **Jangan pakai `while True` atau `time.sleep()` di dalam callback.** Itu membuat node macet. Pakai timer atau callback.
+- **Jelaskan dengan kata sendiri.** Kalau buntu, coba jelaskan masalahnya dengan kata-katamu sendiri ke mentor atau teman (tanpa membagikan kodenya). Sering jawabannya muncul saat menjelaskan.
 
 ---
 
@@ -607,7 +619,7 @@ ros2 service call /spawn turtlesim/srv/Spawn '{x: 2.0, y: 2.0, theta: 0.0, name:
 | Teleop tidak menggerakkan kura-kura | Fokus keyboard tidak di terminal teleop | Klik terminal teleop, lalu tekan tombol panah |
 | Kura-kura tidak bergerak dari node-mu | Nama topic salah, atau `turtlesim_node` belum jalan | `ros2 topic list`, lalu `ros2 topic info -v /turtle1/cmd_vel` |
 | Kura-kura terus bergerak setelah node dihentikan | Turtlesim mengingat perintah terakhir | `ros2 service call /reset std_srvs/srv/Empty` |
-| Perilaku aneh dan kacau | Dua node mengirim ke `cmd_vel` bersamaan | `ros2 node list`, hentikan node yang tidak perlu |
+| Perilaku aneh dan kacau | Dua node mengirim ke `cmd_vel` bersamaan | `ros2 node list`, hentikan node yang tidak perlu (termasuk teleop) |
 | Error Python saat node start | Salah indentasi atau salah ketik | Baca error dari **baris pertama**, lihat nomor barisnya |
 | `colcon build` dijalankan dari folder yang salah | Harus dari root workspace | `cd ~/turtle_ws` lalu build ulang |
 
