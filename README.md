@@ -1,4 +1,4 @@
-# Pelatihan ROS 2 Jazzy: Tim UAV
+# Open Recruitment VC Programmer Gamaforce 2027
 
 Repositori ini berisi semua perintah dan kode yang dipakai saat pelatihan ROS 2, supaya kamu tinggal menyalinnya dan tidak perlu mengetik dari nol.
 
@@ -485,6 +485,7 @@ Polanya:
 - Bekerja **berpasangan**: satu **driver** (mengetik) dan satu **navigator** (membaca dan memberi ide). Bergantian setiap 20 menit.
 - **Wajib sampai Level 2.** Level 3 dan 4 untuk yang cepat. Bonus menambah poin.
 - Boleh membuka dokumentasi dan internet. Mentor membantu lewat petunjuk bertahap, bukan jawaban langsung.
+- Jangan pake AI, kita mau liat cara problem solvingmu.
 - Verifikasi: panggil mentor, lalu jalankan node-mu di depannya dari kondisi awal (`/reset`).
 
 ### 4.2 Daftar Challenge
