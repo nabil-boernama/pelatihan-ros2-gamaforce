@@ -482,7 +482,7 @@ Polanya:
 
 ### 4.1 Aturan Main
 
-- Bekerja **berpasangan**: satu **driver** (mengetik) dan satu **navigator** (membaca dan memberi ide). Bergantian setiap 20 menit.
+- Bekerja **berpasangan**.
 - **Wajib sampai Level 2.** Level 3 dan 4 untuk yang cepat. Bonus menambah poin.
 - Boleh membuka dokumentasi dan internet. Mentor membantu lewat petunjuk bertahap, bukan jawaban langsung.
 - Jangan pake AI, kita mau liat cara problem solvingmu.
